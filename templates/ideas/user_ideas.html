@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ profile_user.username }}'s Ideas{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h3 class="mb-1">
+                <i class="bi bi-person-circle"></i> {{ profile_user.username }}
+            </h3>
+            <p class="text-muted mb-4">{{ ideas.count }} idea{% if ideas.count != 1 %}s{% endif %} submitted</p>
+
+            {% for idea in ideas %}
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    {% if idea.category %}
+                    <span class="badge bg-secondary mb-1">{{ idea.category.name }}</span>
+                    {% endif %}
+                    <h5 class="card-title">
+                        <a href="{% url 'idea_detail' idea.slug %}" class="text-decoration-none text-dark">{{ idea.title }}</a>
+                    </h5>
+                    <p class="card-text text-muted">{{ idea.summary|truncatechars:150 }}</p>
+                    <small class="text-muted">
+                        {{ idea.created_at|timesince }} ago
+                        &middot; <i class="bi bi-arrow-up-circle"></i> {{ idea.vote_count }}
+                        &middot; <i class="bi bi-chat"></i> {{ idea.comment_count }}
+                    </small>
+                    {% if user == profile_user %}
+                    <div class="mt-2">
+                        <a href="{% url 'idea_edit' idea.slug %}" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
+                        <a href="{% url 'idea_delete' idea.slug %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-5">
+                <p class="text-muted">No ideas yet.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

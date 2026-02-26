@@ -1,6 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
+from django.db.utils import IntegrityError
 
 from .models import Category, Idea, Comment, Vote
 
@@ -58,7 +59,7 @@ class VoteModelTest(TestCase):
 
     def test_unique_vote_per_user(self):
         Vote.objects.create(idea=self.idea, user=self.user)
-        with self.assertRaises(Exception):
+        with self.assertRaises(IntegrityError):
             Vote.objects.create(idea=self.idea, user=self.user)
 
 
@@ -94,6 +95,22 @@ class IdeaListViewTest(TestCase):
     def test_search_no_results(self):
         response = self.client.get(reverse("idea_list") + "?q=nonexistent123")
         self.assertNotContains(response, "Visible Idea")
+
+    def test_aggregate_counts_not_inflated_with_votes_and_comments(self):
+        """Regression: annotate with both votes and comments must not multiply counts."""
+        extra_user = User.objects.create_user(username="u2", password="pass1234")
+        Vote.objects.create(idea=self.idea, user=self.user)
+        Vote.objects.create(idea=self.idea, user=extra_user)
+        Comment.objects.create(idea=self.idea, author=self.user, body="c1")
+        Comment.objects.create(idea=self.idea, author=extra_user, body="c2")
+
+        from django.db.models import Count
+        idea = Idea.objects.filter(pk=self.idea.pk).annotate(
+            vote_count=Count("votes", distinct=True),
+            comment_count=Count("comments", distinct=True),
+        ).first()
+        self.assertEqual(idea.vote_count, 2)
+        self.assertEqual(idea.comment_count, 2)
 
 
 class IdeaDetailViewTest(TestCase):

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+{% if not selected_category and not search and request.resolver_match.url_name == 'idea_list' %}
+<div class="hero text-white py-5 mb-4">
+    <div class="container text-center">
+        <h1 class="display-5 fw-bold">Validate Your Startup Idea</h1>
+        <p class="lead">Share your idea, get feedback, and discover what the community loves.</p>
+        {% if user.is_authenticated %}
+        <a href="{% url 'idea_create' %}" class="btn btn-light btn-lg mt-2">
+            <i class="bi bi-lightbulb"></i> Submit Your Idea
+        </a>
+        {% else %}
+        <a href="{% url 'register' %}" class="btn btn-light btn-lg mt-2">Get Started Free</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<div class="container">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-3 mb-4">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header fw-semibold">Search</div>
+                <div class="card-body">
+                    <form method="get">
+                        {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category.slug }}">{% endif %}
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="q" value="{{ search }}" placeholder="Search ideas...">
+                            <button class="btn btn-outline-primary" type="submit"><i class="bi bi-search"></i></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="card shadow-sm">
+                <div class="card-header fw-semibold">Categories</div>
+                <div class="list-group list-group-flush">
+                    <a href="{% url 'idea_list' %}{% if search %}?q={{ search }}{% endif %}"
+                       class="list-group-item list-group-item-action {% if not selected_category %}active{% endif %}">
+                        All Ideas
+                    </a>
+                    {% for cat in categories %}
+                    <a href="?category={{ cat.slug }}{% if search %}&q={{ search }}{% endif %}"
+                       class="list-group-item list-group-item-action {% if selected_category.slug == cat.slug %}active{% endif %}">
+                        {{ cat.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="col-lg-9">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">
+                    {{ page_title }}
+                    {% if selected_category %}<small class="text-muted fs-6">in {{ selected_category.name }}</small>{% endif %}
+                    {% if search %}<small class="text-muted fs-6">for "{{ search }}"</small>{% endif %}
+                </h4>
+                {% if user.is_authenticated %}
+                <a href="{% url 'idea_create' %}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-circle"></i> Submit Idea
+                </a>
+                {% endif %}
+            </div>
+
+            {% if ideas %}
+            {% for idea in ideas %}
+            <div class="card idea-card shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            {% if idea.category %}
+                            <span class="badge bg-secondary badge-category mb-1">{{ idea.category.name }}</span>
+                            {% endif %}
+                            <h5 class="card-title mb-1">
+                                <a href="{% url 'idea_detail' idea.slug %}" class="text-decoration-none text-dark">{{ idea.title }}</a>
+                            </h5>
+                            <p class="card-text text-muted mb-2">{{ idea.summary|truncatechars:120 }}</p>
+                            <small class="text-muted">
+                                by <a href="{% url 'user_ideas' idea.author.username %}">{{ idea.author.username }}</a>
+                                &middot; {{ idea.created_at|timesince }} ago
+                            </small>
+                        </div>
+                        <div class="ms-3 text-center" style="min-width:60px;">
+                            <div class="fs-5 fw-bold text-primary">{{ idea.vote_count }}</div>
+                            <small class="text-muted d-block"><i class="bi bi-arrow-up-circle"></i> votes</small>
+                            <small class="text-muted"><i class="bi bi-chat"></i> {{ idea.comment_count }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-lightbulb fs-1 text-muted"></i>
+                <p class="text-muted mt-2">No ideas found. Be the first to submit one!</p>
+                {% if user.is_authenticated %}
+                <a href="{% url 'idea_create' %}" class="btn btn-primary">Submit Your Idea</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

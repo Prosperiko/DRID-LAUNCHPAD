@@ -21,15 +21,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-#6d+8l&tk9rtqzce&!870*$e8n)u60l55=$a4-1imricu68qlu'
-)
+# DEBUG must be resolved before SECRET_KEY so the production guard below works correctly.
+DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in ("1", "true", "yes", "on")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+_INSECURE_KEY = 'django-insecure-#6d+8l&tk9rtqzce&!870*$e8n)u60l55=$a4-1imricu68qlu'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', _INSECURE_KEY)
+if not DEBUG and SECRET_KEY == _INSECURE_KEY:
+    raise ValueError(
+        "Set the DJANGO_SECRET_KEY environment variable to a secure value in production."
+    )
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "drid-launchpad.onrender.com"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 
 # Application definition
@@ -44,8 +46,10 @@ INSTALLED_APPS = [
     'ideas',
 ]
 
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # right below SecurityMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -115,21 +119,28 @@ USE_I18N = True
 
 USE_TZ = True
 
-# MIDDLEWARE = [
-#     'django.middleware.security.SecurityMiddleware',
-#     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this at the top
-#     'django.contrib.sessions.middleware.SessionMiddleware',
-#     'django.middleware.common.CommonMiddleware',
-#     # ... rest of middleware
-# ]
-
-# STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+    },
+}
+
+# Render runs HTTPS at the proxy and forwards plain HTTP to gunicorn,
+# so Django must trust the proxy's protocol header.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CSRF_TRUSTED_ORIGINS = ['https://drid-launchpad.onrender.com']
+
 
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'

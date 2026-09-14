@@ -1,20 +1,20 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login, logout, authenticate
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import login, get_user_model
 from django.contrib import messages
 from django.db.models import Count
 from django.utils.text import slugify
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+import uuid
 
-from .models import Idea, Category, Comment, Vote
+from .models import Idea, Category, Vote
 from .forms import IdeaForm, CommentForm, RegisterForm
 
 
 def idea_list(request):
     ideas = Idea.objects.filter(status=Idea.STATUS_PUBLISHED).annotate(
-        vote_count=Count("votes"), comment_count=Count("comments")
+        vote_count=Count("votes", distinct=True), comment_count=Count("comments", distinct=True)
     )
     category_slug = request.GET.get("category")
     search = request.GET.get("q", "").strip()
@@ -43,7 +43,7 @@ def idea_list(request):
 def trending(request):
     ideas = (
         Idea.objects.filter(status=Idea.STATUS_PUBLISHED)
-        .annotate(vote_count=Count("votes"), comment_count=Count("comments"))
+        .annotate(vote_count=Count("votes", distinct=True), comment_count=Count("comments", distinct=True))
         .order_by("-vote_count", "-comment_count", "-created_at")
     )
     categories = Category.objects.all()
@@ -80,7 +80,7 @@ def idea_create(request):
         if form.is_valid():
             idea = form.save(commit=False)
             idea.author = request.user
-            base_slug = slugify(idea.title)
+            base_slug = slugify(idea.title) or str(uuid.uuid4())
             slug = base_slug
             counter = 1
             while Idea.objects.filter(slug=slug).exists():
@@ -162,10 +162,10 @@ def register(request):
 
 
 def user_ideas(request, username):
-    from django.contrib.auth.models import User as AuthUser
-    author = get_object_or_404(AuthUser, username=username)
+    User = get_user_model()
+    author = get_object_or_404(User, username=username)
     ideas = Idea.objects.filter(author=author, status=Idea.STATUS_PUBLISHED).annotate(
-        vote_count=Count("votes"), comment_count=Count("comments")
+        vote_count=Count("votes", distinct=True), comment_count=Count("comments", distinct=True)
     )
     context = {
         "profile_user": author,

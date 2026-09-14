@@ -31,7 +31,7 @@ if not DEBUG and SECRET_KEY == _INSECURE_KEY:
         "Set the DJANGO_SECRET_KEY environment variable to a secure value in production."
     )
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "drid-launchpad.onrender.com"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "https://drid-launchpad.onrender.com"]
 
 
 # Application definition

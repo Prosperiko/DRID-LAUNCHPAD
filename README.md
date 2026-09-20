@@ -1,4 +1,4 @@
-# 🚀 DRID Launchpad
+#  DRID Launchpad
 
 A full-stack **idea validation platform** where builders share startup ideas, gather community upvotes, and collect feedback — a mini Product Hunt for early-stage concepts.
 
